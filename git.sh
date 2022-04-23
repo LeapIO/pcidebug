@@ -1,5 +1,5 @@
 #!/bin/bash
-# git提交脚本
+# a shell for auto commit
 home=$HOME
 ctime=`date +"%Y-%m-%d %H:%M:%S"`
 
