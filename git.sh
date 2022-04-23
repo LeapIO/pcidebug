@@ -1,12 +1,12 @@
 #!/bin/bash
 # git提交脚本
-home = $HOME
-ctime = `date + "%Y-%m-%d %H:%M:%S"`
+home=$HOME
+ctime=`date +"%Y-%m-%d %H:%M:%S"`
 
 if [ ! $1 ]; then
-    commitlog = $ctime
+    commitlog=$ctime
 else
-    commitlog = "$1: $ctime"
+    commitlog="$1: $ctime"
 fi
 
 git add .
