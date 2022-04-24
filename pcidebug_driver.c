@@ -54,14 +54,81 @@ int pcidebug_release(struct inode *inode,struct file *file)
     return (SUCCESS);
 }
 
-static int pcidebug_getReource(void)
+static int pcidebug_map_mem_bar(int bar_id)
 {
-    //todo
+    pcidebug.baseHards[bar_id] = pci_resource_start(pcidebug.dev, bar_id);
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
+    pcidebug.baseLens[bar_id] = pci_resource_len(pcidebug.dev, bar_id);
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw len 0x%lu\n",DEVICE_NAME, bar_id, pcidebug.baseLens[bar_id]);
+    pcidebug.baseVirts[bar_id] = ioremap(pcidebug.baseHards[bar_id],pcidebug.baseLens[bar_id]);
+    if(!pcidebug.baseVirts[bar_id]){
+        printk(KERN_WARNING "%s: map_mem_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
+        return (ERROR);
+    }
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d virt addr %lX.\n",DEVICE_NAME, bar_id, pcidebug.baseVirts[bar_id]);
+
+    // request region
+    // to do
+    return (SUCCESS);
+}
+
+static int pcidebug_map_io_bar(int bar_id)
+{
+    pcidebug.baseHards[bar_id] = pci_resource_start(pcidebug.dev, bar_id);
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME,pcidebug.baseHards[bar_id]);
+    pcidebug.baseLens[bar_id] = pci_resource_len(pcidebug.dev, bar_id);
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw len 0x%lu\n",DEVICE_NAME,pcidebug.baseLens[bar_id]);
+    pcidebug.baseVirts[bar_id] = ioremap(pcidebug.baseHards[bar_id],pcidebug.baseLens[bar_id]);
+    if(!pcidebug.baseVirts[bar_id]){
+        printk(KERN_WARNING "%s: map_mem_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
+        return (ERROR);
+    }
+    printk(KERN_INFO "%s: map_mem_bar: BAR %d virt addr %lu.\n",DEVICE_NAME,bar_id,pcidebug.baseVirts[bar_id]);
+
+    // request region
+    // to do
+    return (SUCCESS);
+}
+
+static int pcidebug_getResource(void)
+{
+    int bar_id = 0;
+    unsigned long flags;
+
+    // enable device
+    if(0 > pci_enable_device(pcidebug.dev)){
+        printk(KERN_CRIT"%s: getResource: Device not enable.\n");
+        return (ERROR);
+    }
+
+    // map all bars
+    for(bar_id = 0; bar_id < BARS_MAXNUM; bar_id++){
+        if(pci_resource_len(pcidebug.dev,bar_id)>0 &&pci_resource_start(pcidebug.dev,bar_id)>0){  // valid BAR
+            flags = pci_resource_flags(pcidebug.dev,bar_id);
+            if(flags & IORESOURCE_MEM){         // Memory
+                pcidebug_map_mem_bar(bar_id);
+            }else if(flags & IORESOURCE_IO){    // I/O ports
+                pcidebug_map_io_bar(bar_id);
+            }
+        }else{
+            printk(KERN_WARNING "%s: getResource: BAR %d invalid\n",DEVICE_NAME,bar_id);
+        }
+    }
+
     return (SUCCESS);
 }
 
 static int __init pcidebug_init(void)
 {
+    int i=0;
+    pcidebug.dev = NULL;
+    pcidebug.used = false;
+    for(i=0; i<BARS_MAXNUM; i++){
+        pcidebug.baseHards[i] = 0;
+        pcidebug.baseLens[i] = 0;
+        pcidebug.baseVirts[i] = NULL;
+    }
+
     printk(KERN_INFO"%s: Init: try to found first device, Vendor=0x%x Device=0x%x\n",DEVICE_NAME,vendor,device);
     pcidebug.dev = pci_get_device(vendor,device,NULL);
     if(pcidebug.dev){
@@ -116,6 +183,17 @@ static int __init pcidebug_init(void)
 
 static void __exit pcidebug_exit(void)
 {
+    int id = 0;
+    for(id = 0; id<BARS_MAXNUM; id++){
+        //release region
+        // to do
+
+        // unmap virtual device address
+        if(pcidebug.baseVirts[id] != NULL){
+            iounmap(pcidebug.baseVirts[id]);
+        }
+    }
+
     if(gKernelRegFlag){
         cdev_del(&chardev);
         device_destroy(cl, dev);
