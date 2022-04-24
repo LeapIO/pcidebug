@@ -7,6 +7,13 @@
 
 #define BARS_MAXNUM   6
 
+// struct used for read/write bar space
+typedef struct{
+    int barid;
+    uint64_t offset;
+    uint64_t value;
+}
+
 // ioctl commands
 enum{
     IOCTL_RDBAR8,
