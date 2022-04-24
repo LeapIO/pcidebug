@@ -15,7 +15,7 @@ $(NAME).ko: $(NAME)_driver.c $(NAME)_driver.h
 
 clean:
 	make -C $(KERNEL_DIR) M=$(shell pwd) clean
-	@- $(RM) $(NAME)
+	@- $(RM) $(NAME) *.o.d
 
 load: $(NAME).ko
 	sudo insmod $(NAME).ko vendor=0x8086 device=0xa382

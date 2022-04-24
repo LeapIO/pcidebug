@@ -3,6 +3,8 @@
 *.ko
 *.mod
 *.mod.c
+*.o.d
+
 pcidebug
 
 modules.order
