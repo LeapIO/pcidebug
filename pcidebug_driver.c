@@ -85,6 +85,43 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     return result;
 }
 
+static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
+    if(id<0 || id>BARS_MAXNUM){
+        printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
+        return 0;
+    }
+    if(!pcidebug.baruseds[id]){
+        printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
+        return 0;
+    }
+    if(offset < 0 || offset > pcidebug.baseLens[id]){
+        printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
+        return 0;
+    }
+    switch(bitwidth){
+        case 8:
+            printk(KERN_INFO"%s: write8 at 0x%016llx.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            result = iowrite8((u8)val,pcidebug.baseVirts[id]+offset);
+            break;
+        case 16:
+            printk(KERN_INFO"%s: write16 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            result = iowrite16((u16)val,pcidebug.baseVirts[id]+offset);
+            break;
+        case 32:
+            printk(KERN_INFO"%s: write32 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            result = iowrite32((u32)val,pcidebug.baseVirts[id]+offset);
+            break;
+        case 64:
+            printk(KERN_INFO"%s: write64 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            iowrite32_rep(pcidebug.baseVirts[id]+offset, &val, 2);
+            break;
+        default:
+            printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
+            return 0;
+    }
+    return result;
+}
+
 long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int rc = ERROR;
@@ -121,12 +158,18 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             rc = SUCCESS;
             break;
         case IOCTL_WRBAR8:
+            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,8);
+            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%02x\n",DEVICE_NAME,(u8)cmdarg.value);
+            rc = SUCCESS;
             break;
         case IOCTL_WRBAR16:
+            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,16);
             break;
         case IOCTL_WRBAR32:
+            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,32);
             break;
         case IOCTL_WRBAR64:
+            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,64);
             break;
         default:
             printk(KERN_WARNING "%s: Don't support this ioctl cmd!\n",DEVICE_NAME);
