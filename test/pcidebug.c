@@ -30,9 +30,7 @@ uint32_t pcidebug_rdbar32(int fd, int id, uint64_t offset){
     data.barid = id;
     data.offset = offset;
     data.value = 0;
-    printf("test\n");
     ioctl(fd, IOCTL_RDBAR32, &data);
-    printf("test val=0x%lx\n",data.value);
     return data.value;
 }
 
