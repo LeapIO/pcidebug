@@ -8,7 +8,7 @@ KERNEL_DIR := /lib/modules/$(KERNEL_VER)/build
 obj-m += $(NAME).o
 $(NAME)-y := pcidebug_driver.o
 
-all: $(NAME).ko $(NAME)
+all: $(NAME).ko
 	
 $(NAME).ko: $(NAME)_driver.c $(NAME)_driver.h
 	make -C $(KERNEL_DIR) M=$(shell pwd) modules
@@ -18,16 +18,9 @@ clean:
 	@- $(RM) $(NAME) *.o.d
 
 load: $(NAME).ko
-	sudo insmod $(NAME).ko vendor=0x10ec device=0x8168
+	sudo insmod $(NAME).ko vendor=0x8086 device=0xa3a1
 
 unload:
 	sudo rmmod $(NAME)
 
-# for test
-$(NAME): $(NAME).c $(NAME).h
-	$(CC) -o $(NAME) $(NAME).c
-
-test:$(NAME).ko $(NAME)
-	sudo insmod $(NAME).ko vendor=0x10ec device=0x8168
-	sudo ./$(NAME)
 

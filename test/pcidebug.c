@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include "pcidebug_driver.h"
+#include "../pcidebug_driver.h"
 
 uint8_t pcidebug_rdbar8(int fd, int id, uint64_t offset){
     printf("pcidebug_rdbar8");
@@ -82,7 +82,7 @@ int main(int argc,char *argv[]){
         return 0;
     }
     printf("Open /dev/"DEVICE_NAME"\n");
-    printf("BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,2,0));
+    printf("BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,0));
     //printf("BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,2,0));
     //printf("BAR0:0x0 = %x\n",pcidebug_rdbar32(fd,2,0));
     //printf("BAR0:0x0 = %lx\n",pcidebug_rdbar64(fd,2,0));

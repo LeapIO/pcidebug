@@ -148,49 +148,34 @@ int pcidebug_release(struct inode *inode,struct file *file)
     return (SUCCESS);
 }
 
-static int pcidebug_map_mem_bar(int bar_id)
+static int pcidebug_get_bar(int bar_id)
 {
     pcidebug.baseHards[bar_id] = pci_resource_start(pcidebug.dev, bar_id);
-    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
+    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
     pcidebug.baseLens[bar_id] = pci_resource_len(pcidebug.dev, bar_id);
-    printk(KERN_INFO "%s: map_mem_bar: BAR %d hw len %lu\n",DEVICE_NAME, bar_id, pcidebug.baseLens[bar_id]);
-    pcidebug.baseVirts[bar_id] = ioremap(pcidebug.baseHards[bar_id],pcidebug.baseLens[bar_id]);
+    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d hw len %lu\n",DEVICE_NAME, bar_id, pcidebug.baseLens[bar_id]);
+    pcidebug.baseVirts[bar_id] = pci_iomap(pcidebug.dev, bar_id, pcidebug.baseLens[bar_id]);
     if(!pcidebug.baseVirts[bar_id]){
-        printk(KERN_WARNING "%s: map_mem_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
+        printk(KERN_WARNING "%s: pcidebug_get_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
         return (ERROR);
     }
-    printk(KERN_INFO "%s: map_mem_bar: BAR %d virt addr %lX.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
+    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d virt addr 0x%016lX.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
 
     // request region
-    // todo
-    return (SUCCESS);
-}
-
-static int pcidebug_map_io_bar(int bar_id)
-{
-    pcidebug.baseHards[bar_id] = pci_resource_start(pcidebug.dev, bar_id);
-    printk(KERN_INFO "%s: map_io_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
-    pcidebug.baseLens[bar_id] = pci_resource_len(pcidebug.dev, bar_id);
-    printk(KERN_INFO "%s: map_io_bar: BAR %d hw len %lu\n",DEVICE_NAME, bar_id, pcidebug.baseLens[bar_id]);
-    pcidebug.baseVirts[bar_id] = ioport_map(pcidebug.baseHards[bar_id],pcidebug.baseLens[bar_id]);
-    if(!pcidebug.baseVirts[bar_id]){
-        printk(KERN_WARNING "%s: map_io_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
+    if(!pci_request_region(pcidebug.dev, bar_id, "pcidebug_Driver")){
+        printk(KERN_WARNING"%s: pcidebug_get_bar: Mem/IO in use.\n",DEVICE_NAME);
         return (ERROR);
     }
-    printk(KERN_INFO "%s: map_io_bar: BAR %d virt addr %lX.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
-
-    // request region
-    // to do
+    printk(KERN_INFO "%s: pcidebug_get_bar done.\n",DEVICE_NAME);
     return (SUCCESS);
 }
 
 static int pcidebug_getResource(void)
 {
     int bar_id = 0;
-    unsigned long flags;
 
     // enable device
-    if(0 > pci_enable_device(pcidebug.dev)){
+    if(0 > pcim_enable_device(pcidebug.dev)){
         printk(KERN_CRIT"%s: getResource: Device not enable.\n", DEVICE_NAME);
         return (ERROR);
     }
@@ -198,17 +183,11 @@ static int pcidebug_getResource(void)
     // map all bars
     for(bar_id = 0; bar_id < BARS_MAXNUM; bar_id++){
         if(pci_resource_len(pcidebug.dev,bar_id)>0 &&pci_resource_start(pcidebug.dev,bar_id)>0){  // used BAR
-            pcidebug.baruseds[bar_id] = true;
-            flags = pci_resource_flags(pcidebug.dev,bar_id);
-            if(flags & IORESOURCE_MEM){         // Memory
-                if(0 > pcidebug_map_mem_bar(bar_id)){
-                    return (ERROR);
-                }
-            }else if(flags & IORESOURCE_IO){    // I/O ports
-                if(0 > pcidebug_map_io_bar(bar_id)){
-                    return (ERROR);
-                }
+            if(0 > pcidebug_get_bar(bar_id)){
+                printk(KERN_WARNING"%s: getResource: Can't get BAR %d!\n",DEVICE_NAME,bar_id);
             }
+            pcidebug.baruseds[bar_id] = true;
+
         }else{
             printk(KERN_WARNING "%s: getResource: BAR %d don't used\n",DEVICE_NAME,bar_id);
         }
@@ -289,11 +268,11 @@ static void __exit pcidebug_exit(void)
     for(id = 0; id<BARS_MAXNUM; id++){
         if(pcidebug.used){
             //release region
-            // to do
+            pci_release_region(pcidebug.dev,id);
 
             // unmap virtual device address
             if(pcidebug.baseVirts[id] != NULL){
-                iounmap(pcidebug.baseVirts[id]);
+                pci_iounmap(pcidebug.dev, pcidebug.baseVirts[id]);
                 printk(KERN_INFO "%s: unmap bar %d",DEVICE_NAME,id);
             }
 
