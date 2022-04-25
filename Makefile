@@ -18,7 +18,7 @@ clean:
 	@- $(RM) $(NAME) *.o.d
 
 load: $(NAME).ko
-	sudo insmod $(NAME).ko vendor=0x8086 device=0xa3a1
+	sudo insmod $(NAME).ko vendor=0x10ee device=0x7018
 
 unload:
 	sudo rmmod $(NAME)

@@ -180,6 +180,9 @@ static int pcidebug_getResource(void)
         return (ERROR);
     }
 
+    // Set Bus Master Enable (BME) bit
+    pci_set_master(pcidebug.dev);
+
     // map all bars
     for(bar_id = 0; bar_id < BARS_MAXNUM; bar_id++){
         if(pci_resource_len(pcidebug.dev,bar_id)>0 &&pci_resource_start(pcidebug.dev,bar_id)>0){  // used BAR
@@ -282,6 +285,7 @@ static void __exit pcidebug_exit(void)
     pcidebug.used = 0;
 
     if(pcidebug.dev){
+        pci_clear_master(pcidebug.dev);
         pci_disable_device(pcidebug.dev);
         printk(KERN_INFO "%s: disable device",DEVICE_NAME);
     }
