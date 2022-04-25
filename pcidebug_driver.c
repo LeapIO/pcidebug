@@ -5,6 +5,7 @@
 #include <linux/fs.h>
 #include <linux/pci.h>
 #include <linux/cdev.h>
+#include <asm/uaccess.h>
 #include "pcidebug_driver.h"
 
 MODULE_LICENSE("GPL");
@@ -25,6 +26,7 @@ static struct class *cl;    // Global variable for device class
 struct pcidebug_state{
     struct pci_dev *dev;
     bool used;
+    bool baruseds[BARS_MAXNUM];            // BAR is or not used
     unsigned long baseHards[BARS_MAXNUM];  // BARs Hardware address
     unsigned long baseLens[BARS_MAXNUM];   // BARs Length
     void *baseVirts[BARS_MAXNUM];          // BRAs Virtual address
@@ -35,7 +37,7 @@ static struct pcidebug_state pcidebug;
 //Prorotypes
 int pcidebug_open(struct inode *inode,struct file *file);
 int pcidebug_release(struct inode *inode,struct file *file);
-int pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 // Aliasing
 struct file_operations pcidebug_ops={
@@ -44,17 +46,73 @@ struct file_operations pcidebug_ops={
     release : pcidebug_release,
 };
 
+static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
+    u64 result = 0;
+    printk(KERN_INFO"%s: readbar\n",DEVICE_NAME);
+    if(id<0 || id>BARS_MAXNUM){
+        printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
+        return 0;
+    }
+    if(!pcidebug.baruseds[id]){
+        printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
+        return 0;
+    }
+    if(offset < 0 || offset > pcidebug.baseLens[id]){
+        printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
+        return 0;
+    }
+    switch(bitwidth){
+        case 8:
+            printk(KERN_INFO"%s: read8 %llX.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            result = ioread8(pcidebug.baseVirts[id]+offset);
+            break;
+        case 16:
+            printk(KERN_INFO"%s: read16 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            result = ioread16(pcidebug.baseVirts[id]+offset);
+            break;
+        case 32:
+            printk(KERN_INFO"%s: read32 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            result = ioread32(pcidebug.baseVirts[id]+offset);
+            break;
+        case 64:
+            printk(KERN_INFO"%s: read64 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            ioread32_rep(pcidebug.baseVirts[id]+offset, &result, 2);
+            break;
+        default:
+            printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
+            return 0;
+    }
+    return result;
+}
+
 long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    int rc = (ERROR);
+    int rc = ERROR;
+    rwbar_t cmdarg;
+    if(copy_from_user(&cmdarg,(rwbar_t*)arg,sizeof(rwbar_t))){
+        printk(KERN_ALERT"%s: can't access cmd arg\n",DEVICE_NAME);
+        return rc;
+    }
+
     switch(cmd){
         case IOCTL_RDBAR8:
+            printk(KERN_INFO"%s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
+            printk(KERN_INFO"%s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
+            printk(KERN_INFO"%s: pcidebug_ioctl value=0x%llx\n",DEVICE_NAME,cmdarg.value);
+            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,8);
+            rc = SUCCESS;
             break;
         case IOCTL_RDBAR16:
+            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,16);
+            rc = SUCCESS;
             break;
         case IOCTL_RDBAR32:
+            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,32);
+            rc = SUCCESS;
             break;
         case IOCTL_RDBAR64:
+            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,64);
+            rc = SUCCESS;
             break;
         case IOCTL_WRBAR8:
             break;
@@ -64,17 +122,28 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             break;
         case IOCTL_WRBAR64:
             break;
+        default:
+            printk(KERN_WARNING "%s: Don't support this ioctl cmd!\n",DEVICE_NAME);
     }
+    return rc;
 }
 
 int pcidebug_open(struct inode *inode,struct file *file)
 {
+    if(!pcidebug.used){
+        printk(KERN_WARNING "%s: device don't initialized!\n",DEVICE_NAME);
+        return (ERROR);
+    }
     printk(KERN_INFO "%s: Open: module opened\n",DEVICE_NAME);
     return (SUCCESS);
 }
 
 int pcidebug_release(struct inode *inode,struct file *file)
 {
+    if(!pcidebug.used){
+        printk(KERN_WARNING "%s: device don't initialized!\n",DEVICE_NAME);
+        return (ERROR);
+    }
     printk(KERN_INFO "%s: Release: module released\n",DEVICE_NAME);
     return (SUCCESS);
 }
@@ -128,7 +197,8 @@ static int pcidebug_getResource(void)
 
     // map all bars
     for(bar_id = 0; bar_id < BARS_MAXNUM; bar_id++){
-        if(pci_resource_len(pcidebug.dev,bar_id)>0 &&pci_resource_start(pcidebug.dev,bar_id)>0){  // valid BAR
+        if(pci_resource_len(pcidebug.dev,bar_id)>0 &&pci_resource_start(pcidebug.dev,bar_id)>0){  // used BAR
+            pcidebug.baruseds[bar_id] = true;
             flags = pci_resource_flags(pcidebug.dev,bar_id);
             if(flags & IORESOURCE_MEM){         // Memory
                 if(0 > pcidebug_map_mem_bar(bar_id)){
@@ -140,7 +210,7 @@ static int pcidebug_getResource(void)
                 }
             }
         }else{
-            printk(KERN_WARNING "%s: getResource: BAR %d invalid\n",DEVICE_NAME,bar_id);
+            printk(KERN_WARNING "%s: getResource: BAR %d don't used\n",DEVICE_NAME,bar_id);
         }
     }
 
@@ -153,6 +223,7 @@ static int __init pcidebug_init(void)
     pcidebug.dev = NULL;
     pcidebug.used = false;
     for(i=0; i<BARS_MAXNUM; i++){
+        pcidebug.baruseds[i] = false;
         pcidebug.baseHards[i] = 0;
         pcidebug.baseLens[i] = 0;
         pcidebug.baseVirts[i] = NULL;
@@ -214,16 +285,23 @@ static int __init pcidebug_init(void)
 static void __exit pcidebug_exit(void)
 {
     int id = 0;
+    
     for(id = 0; id<BARS_MAXNUM; id++){
-        //release region
-        // to do
+        if(pcidebug.used){
+            //release region
+            // to do
 
-        // unmap virtual device address
-        if(pcidebug.baseVirts[id] != NULL){
-            iounmap(pcidebug.baseVirts[id]);
-            printk(KERN_INFO "%s: unmap bar %d",DEVICE_NAME,id);
+            // unmap virtual device address
+            if(pcidebug.baseVirts[id] != NULL){
+                iounmap(pcidebug.baseVirts[id]);
+                printk(KERN_INFO "%s: unmap bar %d",DEVICE_NAME,id);
+            }
+
+            pcidebug.baseVirts[id] = NULL;
         }
     }
+    pcidebug.used = 0;
+
     if(pcidebug.dev){
         pci_disable_device(pcidebug.dev);
         printk(KERN_INFO "%s: disable device",DEVICE_NAME);

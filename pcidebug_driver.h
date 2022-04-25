@@ -12,7 +12,7 @@ typedef struct{
     int barid;
     uint64_t offset;
     uint64_t value;
-}
+} rwbar_t;
 
 // ioctl commands
 enum{
