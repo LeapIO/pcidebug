@@ -88,10 +88,12 @@ int main(int argc,char *argv[]){
     // for(int i =0;i<4;i++){
     //     printf("BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,i*2));
     // }
+    pcidebug_wrbar8(fd,0,0,0x00);
     printf("r8 BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,0));
     printf("r16 BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,0));
     printf("r32 BAR0:0x0 = %x\n",pcidebug_rdbar32(fd,0,0));
     printf("r64 BAR0:0x0 = %lx\n",pcidebug_rdbar64(fd,0,0));
+    
     printf("Close %s\n",DEVICE_NAME);
     close(fd);
 }

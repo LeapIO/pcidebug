@@ -88,28 +88,28 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
 static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
     if(id<0 || id>BARS_MAXNUM){
         printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
-        return 0;
+        return ;
     }
     if(!pcidebug.baruseds[id]){
         printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
-        return 0;
+        return ;
     }
     if(offset < 0 || offset > pcidebug.baseLens[id]){
         printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
-        return 0;
+        return ;
     }
     switch(bitwidth){
         case 8:
             printk(KERN_INFO"%s: write8 at 0x%016llx.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
-            result = iowrite8((u8)val,pcidebug.baseVirts[id]+offset);
+            iowrite8((u8)val,pcidebug.baseVirts[id]+offset);
             break;
         case 16:
             printk(KERN_INFO"%s: write16 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
-            result = iowrite16((u16)val,pcidebug.baseVirts[id]+offset);
+            iowrite16((u16)val,pcidebug.baseVirts[id]+offset);
             break;
         case 32:
             printk(KERN_INFO"%s: write32 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
-            result = iowrite32((u32)val,pcidebug.baseVirts[id]+offset);
+            iowrite32((u32)val,pcidebug.baseVirts[id]+offset);
             break;
         case 64:
             printk(KERN_INFO"%s: write64 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
@@ -117,9 +117,8 @@ static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
             break;
         default:
             printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
-            return 0;
+            return;
     }
-    return result;
 }
 
 long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
