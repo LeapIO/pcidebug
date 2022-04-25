@@ -30,7 +30,9 @@ uint32_t pcidebug_rdbar32(int fd, int id, uint64_t offset){
     data.barid = id;
     data.offset = offset;
     data.value = 0;
+    printf("test\n");
     ioctl(fd, IOCTL_RDBAR32, &data);
+    printf("test val=0x%lx\n",data.value);
     return data.value;
 }
 
@@ -82,10 +84,16 @@ int main(int argc,char *argv[]){
         return 0;
     }
     printf("Open /dev/"DEVICE_NAME"\n");
-    printf("BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,0));
-    //printf("BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,2,0));
-    //printf("BAR0:0x0 = %x\n",pcidebug_rdbar32(fd,2,0));
-    //printf("BAR0:0x0 = %lx\n",pcidebug_rdbar64(fd,2,0));
-    //printf("Close %s\n",DEVICE_NAME);
+    // for(int i=0;i<8;i++){
+    //     printf("BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,i));
+    // }
+    // for(int i =0;i<4;i++){
+    //     printf("BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,i*2));
+    // }
+    printf("r8 BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,0));
+    printf("r16 BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,0));
+    printf("r32 BAR0:0x0 = %x\n",pcidebug_rdbar32(fd,0,0));
+    printf("r64 BAR0:0x0 = %lx\n",pcidebug_rdbar64(fd,0,0));
+    printf("Close %s\n",DEVICE_NAME);
     close(fd);
 }

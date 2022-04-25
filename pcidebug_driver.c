@@ -48,7 +48,7 @@ struct file_operations pcidebug_ops={
 
 static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     u64 result = 0;
-    printk(KERN_INFO"%s: readbar\n",DEVICE_NAME);
+    
     if(id<0 || id>BARS_MAXNUM){
         printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
         return 0;
@@ -63,19 +63,19 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     }
     switch(bitwidth){
         case 8:
-            printk(KERN_INFO"%s: read8 %llX.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read8 at 0x%016llx.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread8(pcidebug.baseVirts[id]+offset);
             break;
         case 16:
-            printk(KERN_INFO"%s: read16 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read16 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread16(pcidebug.baseVirts[id]+offset);
             break;
         case 32:
-            printk(KERN_INFO"%s: read32 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read32 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread32(pcidebug.baseVirts[id]+offset);
             break;
         case 64:
-            printk(KERN_INFO"%s: read64 0x%p\n",DEVICE_NAME,pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read64 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             ioread32_rep(pcidebug.baseVirts[id]+offset, &result, 2);
             break;
         default:
@@ -89,29 +89,35 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int rc = ERROR;
     rwbar_t cmdarg;
+
+    printk(KERN_INFO"%s: Enter pcidebug_ioctl\n",DEVICE_NAME);
+
     if(copy_from_user(&cmdarg,(rwbar_t*)arg,sizeof(rwbar_t))){
         printk(KERN_ALERT"%s: can't access cmd arg\n",DEVICE_NAME);
         return rc;
     }
+    printk(KERN_INFO"%s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
+    printk(KERN_INFO"%s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
 
     switch(cmd){
         case IOCTL_RDBAR8:
-            printk(KERN_INFO"%s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
-            printk(KERN_INFO"%s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
-            printk(KERN_INFO"%s: pcidebug_ioctl value=0x%llx\n",DEVICE_NAME,cmdarg.value);
-            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,8);
+            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,8);
+            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%02x\n",DEVICE_NAME,(u8)cmdarg.value);
             rc = SUCCESS;
             break;
         case IOCTL_RDBAR16:
-            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,16);
+            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,16);
+            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%04x\n",DEVICE_NAME,(u16)cmdarg.value);
             rc = SUCCESS;
             break;
         case IOCTL_RDBAR32:
-            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,32);
+            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,32);
+            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%08x\n",DEVICE_NAME,(u32)cmdarg.value);
             rc = SUCCESS;
             break;
         case IOCTL_RDBAR64:
-            (*(rwbar_t *)arg).value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,64);
+            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,64);
+            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%016llx\n",DEVICE_NAME,(u64)cmdarg.value);
             rc = SUCCESS;
             break;
         case IOCTL_WRBAR8:
@@ -124,6 +130,11 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             break;
         default:
             printk(KERN_WARNING "%s: Don't support this ioctl cmd!\n",DEVICE_NAME);
+    }
+    
+    if(copy_to_user((rwbar_t*)arg,&cmdarg,sizeof(rwbar_t))){
+        printk(KERN_ALERT"%s: return fail\n",DEVICE_NAME);
+        return rc;
     }
     return rc;
 }
@@ -151,7 +162,7 @@ int pcidebug_release(struct inode *inode,struct file *file)
 static int pcidebug_get_bar(int bar_id)
 {
     pcidebug.baseHards[bar_id] = pci_resource_start(pcidebug.dev, bar_id);
-    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d hw addr 0x%016lX\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
+    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d hw addr 0x%016lx\n",DEVICE_NAME, bar_id, pcidebug.baseHards[bar_id]);
     pcidebug.baseLens[bar_id] = pci_resource_len(pcidebug.dev, bar_id);
     printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d hw len %lu\n",DEVICE_NAME, bar_id, pcidebug.baseLens[bar_id]);
     pcidebug.baseVirts[bar_id] = pci_iomap(pcidebug.dev, bar_id, pcidebug.baseLens[bar_id]);
@@ -159,7 +170,7 @@ static int pcidebug_get_bar(int bar_id)
         printk(KERN_WARNING "%s: pcidebug_get_bar: BAR %d can't remap memory.\n",DEVICE_NAME,bar_id);
         return (ERROR);
     }
-    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d virt addr 0x%016lX.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
+    printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d virt addr 0x%016lx.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
 
     // request region
     if(!pci_request_region(pcidebug.dev, bar_id, "pcidebug_Driver")){
