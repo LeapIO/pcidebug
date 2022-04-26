@@ -101,12 +101,13 @@ int main(int argc,char *argv[]){
     // printf("r32 BAR0:0x0 = 0x%08x\n",pcidebug_rdbar32(fd,0,0));
     // printf("r32 BAR0:0x0 = 0x%08x\n",pcidebug_rdbar32(fd,0,4));
     // printf("r64 BAR0:0x0 = 0x%016lx\n",pcidebug_rdbar64(fd,0,0));
-    char cmd[4];
-    int id = 0;
-    uint64_t offset = 0;
-    uint64_t val = 0;
+    char cmd[10];
+    int id;
+    uint64_t offset;
+    uint64_t val;
     printf("pcidebug$ ");
     while(scanf("%s",cmd)!=EOF){
+        id = offset = val = 0; //reset
         if(strcmp(cmd,"r8")==0){
             scanf("%d %lu", &id, &offset);
             printf("val = 0x%02x\n",pcidebug_rdbar8(fd,id,offset));
@@ -118,25 +119,27 @@ int main(int argc,char *argv[]){
             printf("val = 0x%08x\n",pcidebug_rdbar32(fd,id,offset));
         }else if(strcmp(cmd,"r64")==0){
             scanf("%d %lu", &id, &offset);
-            printf("val = 0x%16lx\n",pcidebug_rdbar64(fd,id,offset));
+            printf("val = 0x%016lx\n",pcidebug_rdbar64(fd,id,offset));
         }else if(strcmp(cmd,"w8")==0){
-            scanf("%d %lu %lu", &id, &offset, &val);
+            scanf("%d %lu %lx", &id, &offset, &val);
             pcidebug_wrbar8(fd,id,offset,val);
             printf("wrbar8 0x%02x done\n",(uint8_t)val);
         }else if(strcmp(cmd,"w16")==0){
-            scanf("%d %lu %lu", &id, &offset, &val);
+            scanf("%d %lu %lx", &id, &offset, &val);
             pcidebug_wrbar16(fd,id,offset,val);
             printf("wrbar16 0x%04x done\n",(uint16_t)val);
         }else if(strcmp(cmd,"w32")==0){  
-            scanf("%d %lu %lu", &id, &offset, &val);
+            scanf("%d %lu %lx", &id, &offset, &val);
             pcidebug_wrbar32(fd,id,offset,val);
             printf("wrbar32 0x%08x done\n",(uint32_t)val);
         }else if(strcmp(cmd,"w64")==0){
-            scanf("%d %lu %lu", &id, &offset, &val);
+            scanf("%d %lu %lx", &id, &offset, &val);
             pcidebug_wrbar64(fd,id,offset,val);
-            printf("wrbar64 0x%16lx done\n",val);
+            printf("wrbar64 0x%016lx done\n",val);
         }else if(strcmp(cmd,"exit")==0){
             break;
+        }else{
+            printf("\n");
         }
         printf("pcidebug$ ");
     }

@@ -48,7 +48,7 @@ struct file_operations pcidebug_ops={
 
 static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     u64 result = 0;
-    
+    u32 low = 0;
     if(id<0 || id>BARS_MAXNUM){
         printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
         return 0;
@@ -75,7 +75,9 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
             printk(KERN_INFO"%s: read32 at 0x%016llx = 0x%08x.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, (u32)result);
             break;
         case 64:
-            ioread32_rep(pcidebug.baseVirts[id]+offset, &result, 2);
+            low = ioread32(pcidebug.baseVirts[id]+offset);
+            result = ioread32(pcidebug.baseVirts[id]+offset+4);
+            result = (result<<32) + low;
             printk(KERN_INFO"%s: read64 at 0x%016llx = 0x%016llx.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, result);
             break;
         default:
@@ -114,7 +116,8 @@ static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
             break;
         case 64:
             printk(KERN_INFO"%s: write64 0x%016llx at 0x%016llx\n",DEVICE_NAME, val, (size_t)pcidebug.baseVirts[id]+offset);
-            iowrite32_rep(pcidebug.baseVirts[id]+offset, &val, 2);
+            iowrite32((u32)val,pcidebug.baseVirts[id]+offset); // write low
+            iowrite32((u32)(val>>32),pcidebug.baseVirts[id]+offset+4); // write high
             break;
         default:
             printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
@@ -207,9 +210,6 @@ static int pcidebug_getResource(void)
         printk(KERN_CRIT"%s: getResource: Device not enable.\n", DEVICE_NAME);
         return (ERROR);
     }
-
-    // Set Bus Master Enable (BME) bit
-    pci_set_master(pcidebug.dev);
 
     // map all bars
     for(bar_id = 0; bar_id < BARS_MAXNUM; bar_id++){
@@ -313,7 +313,6 @@ static void __exit pcidebug_exit(void)
     pcidebug.used = 0;
 
     if(pcidebug.dev){
-        pci_clear_master(pcidebug.dev);
         pci_disable_device(pcidebug.dev);
         printk(KERN_INFO "%s: disable device",DEVICE_NAME);
     }
