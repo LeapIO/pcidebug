@@ -63,20 +63,20 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     }
     switch(bitwidth){
         case 8:
-            printk(KERN_INFO"%s: read8 at 0x%016llx.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread8(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read8 at 0x%016llx = 0x%02x.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, (u8)result);
             break;
         case 16:
-            printk(KERN_INFO"%s: read16 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread16(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read16 at 0x%016llx = 0x%04x.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, (u16)result);
             break;
         case 32:
-            printk(KERN_INFO"%s: read32 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             result = ioread32(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: read32 at 0x%016llx = 0x%08x.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, (u32)result);
             break;
         case 64:
-            printk(KERN_INFO"%s: read64 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
             ioread32_rep(pcidebug.baseVirts[id]+offset, &result, 2);
+            printk(KERN_INFO"%s: read64 at 0x%016llx = 0x%016llx.\n",DEVICE_NAME, (size_t)pcidebug.baseVirts[id]+offset, result);
             break;
         default:
             printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
@@ -98,21 +98,22 @@ static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
         printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
         return ;
     }
+    printk(KERN_INFO"%s: pcidebug_writebar val=0x%016llx\n",DEVICE_NAME, val);
     switch(bitwidth){
         case 8:
-            printk(KERN_INFO"%s: write8 at 0x%016llx.\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: write8 0x%02x at 0x%016llx.\n",DEVICE_NAME, (u8)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite8((u8)val,pcidebug.baseVirts[id]+offset);
             break;
         case 16:
-            printk(KERN_INFO"%s: write16 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: write16 0x%04x at 0x%016llx\n",DEVICE_NAME, (u16)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite16((u16)val,pcidebug.baseVirts[id]+offset);
             break;
         case 32:
-            printk(KERN_INFO"%s: write32 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: write32 0x%08x at 0x%016llx\n",DEVICE_NAME, (u32)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite32((u32)val,pcidebug.baseVirts[id]+offset);
             break;
         case 64:
-            printk(KERN_INFO"%s: write64 at 0x%016llx\n",DEVICE_NAME,(size_t)pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: write64 0x%016llx at 0x%016llx\n",DEVICE_NAME, val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite32_rep(pcidebug.baseVirts[id]+offset, &val, 2);
             break;
         default:
@@ -134,41 +135,15 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     }
     printk(KERN_INFO"%s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
     printk(KERN_INFO"%s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
+    printk(KERN_INFO"%s: pcidebug_ioctl bitwidth=%d\n",DEVICE_NAME,cmdarg.bitwidth);
 
     switch(cmd){
-        case IOCTL_RDBAR8:
-            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,8);
-            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%02x\n",DEVICE_NAME,(u8)cmdarg.value);
+        case IOCTL_RDBAR:
+            cmdarg.value = pcidebug_readbar(cmdarg.barid, cmdarg.offset, cmdarg.bitwidth);
             rc = SUCCESS;
             break;
-        case IOCTL_RDBAR16:
-            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,16);
-            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%04x\n",DEVICE_NAME,(u16)cmdarg.value);
-            rc = SUCCESS;
-            break;
-        case IOCTL_RDBAR32:
-            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,32);
-            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%08x\n",DEVICE_NAME,(u32)cmdarg.value);
-            rc = SUCCESS;
-            break;
-        case IOCTL_RDBAR64:
-            cmdarg.value = pcidebug_readbar(cmdarg.barid,cmdarg.offset,64);
-            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%016llx\n",DEVICE_NAME,(u64)cmdarg.value);
-            rc = SUCCESS;
-            break;
-        case IOCTL_WRBAR8:
-            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,8);
-            printk(KERN_INFO"%s: pcidebug_ioctl read value=0x%02x\n",DEVICE_NAME,(u8)cmdarg.value);
-            rc = SUCCESS;
-            break;
-        case IOCTL_WRBAR16:
-            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,16);
-            break;
-        case IOCTL_WRBAR32:
-            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,32);
-            break;
-        case IOCTL_WRBAR64:
-            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value ,64);
+        case IOCTL_WRBAR:
+            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value, cmdarg.bitwidth);
             break;
         default:
             printk(KERN_WARNING "%s: Don't support this ioctl cmd!\n",DEVICE_NAME);

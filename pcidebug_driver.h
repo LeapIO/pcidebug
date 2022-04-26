@@ -16,19 +16,14 @@ typedef struct{
     int barid;
     uint64_t offset;
     uint64_t value;
+    int bitwidth;
 } rwbar_t;
 
 // ioctl commands
 enum{
-    IOCTL_RDBAR8,
-    IOCTL_RDBAR32,
-    IOCTL_RDBAR16,
-    IOCTL_RDBAR64,
+    IOCTL_RDBAR,
 
-    IOCTL_WRBAR8,
-    IOCTL_WRBAR16,
-    IOCTL_WRBAR32,
-    IOCTL_WRBAR64,
+    IOCTL_WRBAR,
 };
 
 #endif //PCIDEBUG_DRIVER_H

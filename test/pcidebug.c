@@ -6,13 +6,12 @@
 #include "../pcidebug_driver.h"
 
 uint8_t pcidebug_rdbar8(int fd, int id, uint64_t offset){
-    printf("pcidebug_rdbar8");
     rwbar_t data;
     data.barid = id;
     data.offset = offset;
     data.value = 0;
-    printf(",&data =%p\n",&data);
-    ioctl(fd, IOCTL_RDBAR8, &data);
+    data.bitwidth = 8;
+    ioctl(fd, IOCTL_RDBAR, &data);
     return data.value;
 }
 
@@ -21,7 +20,8 @@ uint16_t pcidebug_rdbar16(int fd, int id, uint64_t offset){
     data.barid = id;
     data.offset = offset;
     data.value = 0;
-    ioctl(fd, IOCTL_RDBAR16, &data);
+    data.bitwidth = 16;
+    ioctl(fd, IOCTL_RDBAR, &data);
     return data.value;
 }
 
@@ -30,7 +30,8 @@ uint32_t pcidebug_rdbar32(int fd, int id, uint64_t offset){
     data.barid = id;
     data.offset = offset;
     data.value = 0;
-    ioctl(fd, IOCTL_RDBAR32, &data);
+    data.bitwidth = 32;
+    ioctl(fd, IOCTL_RDBAR, &data);
     return data.value;
 }
 
@@ -39,7 +40,8 @@ uint64_t pcidebug_rdbar64(int fd, int id, uint64_t offset){
     data.barid = id;
     data.offset = offset;
     data.value = 0;
-    ioctl(fd, IOCTL_RDBAR64, &data);
+    data.bitwidth = 64;
+    ioctl(fd, IOCTL_RDBAR, &data);
     return data.value;
 }
 
@@ -48,7 +50,8 @@ void pcidebug_wrbar8(int fd, int id, uint64_t offset, uint8_t value){
     data.barid = id;
     data.offset = offset;
     data.value = value;
-    ioctl(fd, IOCTL_WRBAR8, &data);
+    data.bitwidth = 8;
+    ioctl(fd, IOCTL_WRBAR, &data);
 }
 
 void pcidebug_wrbar16(int fd, int id, uint64_t offset, uint16_t value){
@@ -56,7 +59,8 @@ void pcidebug_wrbar16(int fd, int id, uint64_t offset, uint16_t value){
     data.barid = id;
     data.offset = offset;
     data.value = value;
-    ioctl(fd, IOCTL_WRBAR16, &data);
+    data.bitwidth = 16;
+    ioctl(fd, IOCTL_WRBAR, &data);
 }
 
 void pcidebug_wrbar32(int fd, int id, uint64_t offset, uint32_t value){
@@ -64,7 +68,8 @@ void pcidebug_wrbar32(int fd, int id, uint64_t offset, uint32_t value){
     data.barid = id;
     data.offset = offset;
     data.value = value;
-    ioctl(fd, IOCTL_WRBAR32, &data);
+    data.bitwidth = 32;
+    ioctl(fd, IOCTL_WRBAR, &data);
 }
 
 void pcidebug_wrbar64(int fd, int id, uint64_t offset, uint64_t value){
@@ -72,7 +77,8 @@ void pcidebug_wrbar64(int fd, int id, uint64_t offset, uint64_t value){
     data.barid = id;
     data.offset = offset;
     data.value = value;
-    ioctl(fd, IOCTL_WRBAR64, &data);
+    data.bitwidth = 64;
+    ioctl(fd, IOCTL_WRBAR, &data);
 }
 
 int main(int argc,char *argv[]){
@@ -88,11 +94,12 @@ int main(int argc,char *argv[]){
     // for(int i =0;i<4;i++){
     //     printf("BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,i*2));
     // }
-    pcidebug_wrbar8(fd,0,0,0x00);
-    printf("r8 BAR0:0x0 = %x\n",pcidebug_rdbar8(fd,0,0));
-    printf("r16 BAR0:0x0 = %x\n",pcidebug_rdbar16(fd,0,0));
-    printf("r32 BAR0:0x0 = %x\n",pcidebug_rdbar32(fd,0,0));
-    printf("r64 BAR0:0x0 = %lx\n",pcidebug_rdbar64(fd,0,0));
+    pcidebug_wrbar64(fd, 0, 0, 0xff000000ee800000);
+    printf("r8 BAR0:0x0 = 0x%02x\n",pcidebug_rdbar8(fd,0,0));
+    printf("r16 BAR0:0x0 = 0x%04x\n",pcidebug_rdbar16(fd,0,0));
+    printf("r32 BAR0:0x0 = 0x%08x\n",pcidebug_rdbar32(fd,0,0));
+    printf("r32 BAR0:0x0 = 0x%08x\n",pcidebug_rdbar32(fd,0,4));
+    printf("r64 BAR0:0x0 = 0x%016lx\n",pcidebug_rdbar64(fd,0,0));
     
     printf("Close %s\n",DEVICE_NAME);
     close(fd);
