@@ -2,5 +2,33 @@
 module parameter:
 - vendor: vendor id, default 0x10ee
 - device: device id, default 0x7038
+- insmod pcidebug.ko vendor=0x10ee device=0x7038
 
 ioctl:
+ioctl commands:
+- IOCTL_RDBAR
+- IOCTL_WRBAR
+
+arg ( rwbar_t ) includeing:
+- barid : select bar
+- offset : specify offset from start of this bar
+- value : read return value / write value
+- bitwidth : support 8/16/32/64
+
+example:
+```
+uint8_t pcidebug_rdbar8(int fd, int id, uint64_t offset){
+    rwbar_t data;
+    data.barid = id;
+    data.offset = offset;
+    data.value = 0;
+    data.bitwidth = 8;
+    ioctl(fd, IOCTL_RDBAR, &data);
+    return data.value;
+}
+```
+
+test:
+- run test/pcidebug
+- input cmd : [r/w][bitwdth] [bar id] [offset] [value]
+- like : "r8 0 0", "w8 0 0 0xff"
