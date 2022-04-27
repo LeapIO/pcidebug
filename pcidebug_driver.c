@@ -250,7 +250,7 @@ static int __init pcidebug_init(void)
         }
     }else{
         printk(KERN_INFO"%s: Init: not found device\n",DEVICE_NAME);
-        return (ERROR);
+        return (-ENODEV);
     }
     printk(KERN_INFO"%s: Init: finish found device\n",DEVICE_NAME);
 

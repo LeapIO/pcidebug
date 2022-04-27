@@ -3,13 +3,15 @@
 
 NAME := pcidebug
 
-all: $(NAME)	
+all: lib$(NAME).so
 
 clean:
-	@- $(RM) $(NAME)
+	@- $(RM) lib$(NAME).so
 
 # for test
-$(NAME): $(NAME).c 
-	$(CC) -o $(NAME) $(NAME).c
+lib$(NAME).so: $(NAME).c 
+	$(CC) -shared -Wl,-soname,lib$(NAME) -o lib$(NAME).so -fpic $(NAME).c 
 
+test: lib$(NAME).so
+	python $(NAME).py
 

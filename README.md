@@ -29,6 +29,11 @@ uint8_t pcidebug_rdbar8(int fd, int id, uint64_t offset){
 ```
 
 test:
-- run test/pcidebug
-- input cmd : [r/w][bitwdth] [bar id] [offset] [value]
-- like : "r8 0 0", "w8 0 0 0xff"
+1. "cd ./test" && "make test"
+2. type cmd : [r/w][bitwdth] [bar id] [offset] [value]
+    - r : read ; w : write
+    - bitwdth = 8 / 16 / 32 / 64
+    - bar id : a decimal number
+    - offset : a decimal/hexdecimal number, the hexdecimal number must begin with "0x"
+    - value : a hexdecimal number begin with "0x"
+3. like : "r8 0 0", "w16 0 0x0 0xff"
