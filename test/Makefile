@@ -13,5 +13,5 @@ lib$(NAME).so: $(NAME).c
 	$(CC) -shared -Wl,-soname,lib$(NAME) -o lib$(NAME).so -fpic $(NAME).c 
 
 test: lib$(NAME).so
-	python $(NAME).py
+	sudo python $(NAME).py
 

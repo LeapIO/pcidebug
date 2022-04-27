@@ -87,42 +87,55 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     return result;
 }
 
-static void pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
+static u64 pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
+    u64 result = 0;
+    u32 low = 0;
     if(id<0 || id>BARS_MAXNUM){
         printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
-        return ;
+        return 0;
     }
     if(!pcidebug.baruseds[id]){
         printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
-        return ;
+        return 0;
     }
     if(offset < 0 || offset > pcidebug.baseLens[id]){
         printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
-        return ;
+        return 0;
     }
     printk(KERN_INFO"%s: pcidebug_writebar val=0x%016llx\n",DEVICE_NAME, val);
     switch(bitwidth){
         case 8:
             printk(KERN_INFO"%s: write8 0x%02x at 0x%016llx.\n",DEVICE_NAME, (u8)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite8((u8)val,pcidebug.baseVirts[id]+offset);
+            result = ioread8(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: %s, 0x%016llx = 0x%02x.\n",DEVICE_NAME, result==val?"Success":"Failure",(size_t)pcidebug.baseVirts[id]+offset, (u8)result);
             break;
         case 16:
             printk(KERN_INFO"%s: write16 0x%04x at 0x%016llx\n",DEVICE_NAME, (u16)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite16((u16)val,pcidebug.baseVirts[id]+offset);
+            result = ioread16(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: %s, 0x%016llx = 0x%04x.\n",DEVICE_NAME, result==val?"Success":"Failure",(size_t)pcidebug.baseVirts[id]+offset, (u16)result);
             break;
         case 32:
             printk(KERN_INFO"%s: write32 0x%08x at 0x%016llx\n",DEVICE_NAME, (u32)val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite32((u32)val,pcidebug.baseVirts[id]+offset);
+            result = ioread32(pcidebug.baseVirts[id]+offset);
+            printk(KERN_INFO"%s: %s, 0x%016llx = 0x%08x.\n",DEVICE_NAME, result==val?"Success":"Failure",(size_t)pcidebug.baseVirts[id]+offset, (u32)result);
             break;
         case 64:
             printk(KERN_INFO"%s: write64 0x%016llx at 0x%016llx\n",DEVICE_NAME, val, (size_t)pcidebug.baseVirts[id]+offset);
             iowrite32((u32)val,pcidebug.baseVirts[id]+offset); // write low
             iowrite32((u32)(val>>32),pcidebug.baseVirts[id]+offset+4); // write high
+            low = ioread32(pcidebug.baseVirts[id]+offset); //read low
+            result = ioread32(pcidebug.baseVirts[id]+offset+4); //read high
+            result = (result<<32) + low;
+            printk(KERN_INFO"%s: %s, 0x%016llx = 0x%016llx.\n",DEVICE_NAME, result==val?"Success":"Failure",(size_t)pcidebug.baseVirts[id]+offset, (u64)result);
             break;
         default:
             printk(KERN_WARNING "%s: don't support this bitwidth!\n",DEVICE_NAME);
-            return;
+            return 0;
     }
+    return result;
 }
 
 long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -146,10 +159,11 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             rc = SUCCESS;
             break;
         case IOCTL_WRBAR:
-            pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value, cmdarg.bitwidth);
+            cmdarg.value = pcidebug_writebar(cmdarg.barid, cmdarg.offset, cmdarg.value, cmdarg.bitwidth);
             break;
         default:
             printk(KERN_WARNING "%s: Don't support this ioctl cmd!\n",DEVICE_NAME);
+            break;
     }
     
     if(copy_to_user((rwbar_t*)arg,&cmdarg,sizeof(rwbar_t))){

@@ -59,40 +59,44 @@ uint64_t pcidebug_rdbar64(int fd, int id, uint64_t offset){
     return data.value;
 }
 
-void pcidebug_wrbar8(int fd, int id, uint64_t offset, uint8_t value){
+uint8_t pcidebug_wrbar8(int fd, int id, uint64_t offset, uint8_t value){
     rwbar_t data;
     data.barid = id;
     data.offset = offset;
     data.value = value;
     data.bitwidth = 8;
     ioctl(fd, IOCTL_WRBAR, &data);
+    return (uint8_t)data.value;
 }
 
-void pcidebug_wrbar16(int fd, int id, uint64_t offset, uint16_t value){
+uint16_t pcidebug_wrbar16(int fd, int id, uint64_t offset, uint16_t value){
     rwbar_t data;
     data.barid = id;
     data.offset = offset;
     data.value = value;
     data.bitwidth = 16;
     ioctl(fd, IOCTL_WRBAR, &data);
+    return (uint16_t)data.value;
 }
 
-void pcidebug_wrbar32(int fd, int id, uint64_t offset, uint32_t value){
+uint32_t pcidebug_wrbar32(int fd, int id, uint64_t offset, uint32_t value){
     rwbar_t data;
     data.barid = id;
     data.offset = offset;
     data.value = value;
     data.bitwidth = 32;
     ioctl(fd, IOCTL_WRBAR, &data);
+    return (uint32_t)data.value;
 }
 
-void pcidebug_wrbar64(int fd, int id, uint64_t offset, uint64_t value){
+uint64_t pcidebug_wrbar64(int fd, int id, uint64_t offset, uint64_t value){
     rwbar_t data;
     data.barid = id;
     data.offset = offset;
     data.value = value;
     data.bitwidth = 64;
     ioctl(fd, IOCTL_WRBAR, &data);
+    return (uint64_t)data.value;
 }
 
 // int main(int argc,char *argv[]){

@@ -3,14 +3,23 @@ import readline
 from ctypes import *
 
 libpcidebug = CDLL("./libpcidebug.so")
-libpcidebug.pcidebug_rdbar16.argtype = (c_int, c_int, c_uint64)
-libpcidebug.pcidebug_rdbar16.restype = c_uint8
+libpcidebug.pcidebug_rdbar8.argtype = (c_int, c_int, c_uint64)
+libpcidebug.pcidebug_rdbar8.restype = c_uint8
 libpcidebug.pcidebug_rdbar16.argtype = (c_int, c_int, c_uint64)
 libpcidebug.pcidebug_rdbar16.restype = c_uint16
 libpcidebug.pcidebug_rdbar32.argtype = (c_int, c_int, c_uint64)
 libpcidebug.pcidebug_rdbar32.restype = c_uint32
 libpcidebug.pcidebug_rdbar64.argtype = (c_int, c_int, c_uint64)
 libpcidebug.pcidebug_rdbar64.restype = c_uint64
+libpcidebug.pcidebug_wrbar8.argtype = (c_int, c_int, c_uint64, c_uint8)
+libpcidebug.pcidebug_wrbar8.restype = c_uint8
+libpcidebug.pcidebug_wrbar16.argtype = (c_int, c_int, c_uint64, c_uint16)
+libpcidebug.pcidebug_wrbar16.restype = c_uint16
+libpcidebug.pcidebug_wrbar32.argtype = (c_int, c_int, c_uint64, c_uint32)
+libpcidebug.pcidebug_wrbar32.restype = c_uint32
+libpcidebug.pcidebug_wrbar64.argtype = (c_int, c_int, c_uint64, c_uint64)
+libpcidebug.pcidebug_wrbar64.restype = c_uint64
+resultstr={True:"Success",False:"Failure"}
 
 def parse_arg(args):
     id = int(args[0],10)
@@ -97,8 +106,8 @@ class PCIdebugShell(cmd.Cmd):
         if 3 == len(args):
             try:
                 (id, offset, val) = parse_arg(args)
-                libpcidebug.pcidebug_wrbar8(self.fd, c_int(id), c_uint64(offset), c_uint8(val))
-                print("write done")
+                ret = libpcidebug.pcidebug_wrbar8(self.fd, c_int(id), c_uint64(offset), c_uint8(val))
+                print("write %s, BAR%d %#x => 0x%02x"%(resultstr[ret==val], id, offset, ret))
             except:
                 print("arguments error")
         else:
@@ -109,8 +118,8 @@ class PCIdebugShell(cmd.Cmd):
         if 3 == len(args):
             try:
                 (id, offset, val) = parse_arg(args)
-                libpcidebug.pcidebug_wrbar16(self.fd, c_int(id), c_uint64(offset), c_uint16(val))
-                print("write done")
+                ret = libpcidebug.pcidebug_wrbar16(self.fd, c_int(id), c_uint64(offset), c_uint16(val))
+                print("write %s, BAR%d %#x => 0x%04x"%(resultstr[ret==val], id, offset, ret))
             except:
                 print("arguments error")
         else:
@@ -121,8 +130,8 @@ class PCIdebugShell(cmd.Cmd):
         if 3 == len(args):
             try:
                 (id, offset, val) = parse_arg(args)
-                libpcidebug.pcidebug_wrbar32(self.fd, c_int(id), c_uint64(offset), c_uint32(val))
-                print("write done")
+                ret = libpcidebug.pcidebug_wrbar32(self.fd, c_int(id), c_uint64(offset), c_uint32(val))
+                print("write %s, BAR%d %#x => 0x%08x"%(resultstr[ret==val], id, offset, ret))
             except:
                 print("arguments error")
         else:
@@ -133,8 +142,8 @@ class PCIdebugShell(cmd.Cmd):
         if 3 == len(args):
             try:
                 (id, offset, val) = parse_arg(args)
-                libpcidebug.pcidebug_wrbar64(self.fd, c_int(id), c_uint64(offset), c_uint64(val))
-                print("write done")
+                ret = libpcidebug.pcidebug_wrbar64(self.fd, c_int(id), c_uint64(offset), c_uint64(val))
+                print("write %s, BAR%d %#x => 0x%016x"%(resultstr[ret==val], id, offset, ret))
             except:
                 print("arguments error")
         else:
