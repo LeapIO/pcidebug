@@ -52,7 +52,7 @@ long Kprintf_SysWrite(unsigned int fd, char * buf, unsigned int buf_len)
 {
     long len = -EBADF;
     struct file * file = NULL;
-    mm_segment_t old_fs;
+    //mm_segment_t old_fs;
 
     //check arguments
     if(NULL == buf){
@@ -61,20 +61,21 @@ long Kprintf_SysWrite(unsigned int fd, char * buf, unsigned int buf_len)
     }
 
     // set file system status to kernal
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
+    // old_fs = get_fs(); 
+    // set_fs(KERNEL_DS); 
 
     file = fget(fd);
 
     if(NULL!=file){
         loff_t pos = file->f_pos;
-        len = vfs_write(file, buf, buf_len, &pos);
+        // len = vfs_write(file, buf, buf_len, &pos);
+        len = kernel_write(file, buf, buf_len, &pos); // suit for linux 5.10
         file->f_pos = pos;
         fput(file);
     }
 
     // recovery file system status
-    set_fs(old_fs);
+    // set_fs(old_fs);
     return len;
 }
 

@@ -1,4 +1,6 @@
 # pcidebug
+Linux: suit for 5.10
+
 module parameter:
 - vendor: vendor id, default 0x10ee
 - device: device id, default 0x7038
