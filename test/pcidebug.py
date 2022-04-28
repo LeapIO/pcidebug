@@ -159,4 +159,5 @@ if __name__ == '__main__':
     try:
         pcidebug.cmdloop()
     except KeyboardInterrupt:
+        print("")
         pcidebug.postloop()
