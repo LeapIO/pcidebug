@@ -9,6 +9,7 @@
 #define BARS_MAXNUM   6
 
 #define KPRINTF_MAX 1024 
+#define SHOW_MAX 256
 
 // struct used for read/write bar space
 typedef struct{
@@ -18,11 +19,16 @@ typedef struct{
     int bitwidth;
 } rwbar_t;
 
-// ioctl commands
-enum{
-    IOCTL_RDBAR,
 
-    IOCTL_WRBAR,
+// commands nr
+enum{
+    RDBAR,
+    WRBAR,
 };
+
+// ioctl commands
+#define IOCTL_TYPE 0x13
+#define IOCTL_RDBAR _IOR(IOCTL_TYPE, RDBAR, rwbar_t)
+#define IOCTL_WRBAR _IOW(IOCTL_TYPE, WRBAR, rwbar_t)
 
 #endif //PCIDEBUG_DRIVER_H

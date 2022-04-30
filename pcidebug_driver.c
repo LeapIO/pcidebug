@@ -107,21 +107,6 @@ int Kprintf(const char * fmt, ...)
 static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
     u64 result = 0;
     u32 low = 0;
-    if(id<0 || id>BARS_MAXNUM){
-        Kprintf("[KERN_WARNING] %s: BAR id invalid!\n",DEVICE_NAME);
-        printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
-        return 0;
-    }
-    if(!pcidebug.baruseds[id]){
-        Kprintf("[KERN_WARNING] %s: BAR %d don't used!\n",DEVICE_NAME, id);
-        printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
-        return 0;
-    }
-    if(offset < 0 || offset > pcidebug.baseLens[id]){
-        Kprintf("[KERN_WARNING] %s: Offset out of range!\n",DEVICE_NAME);
-        printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
-        return 0;
-    }
     switch(bitwidth){
         case 8:
             result = ioread8(pcidebug.baseVirts[id]+offset);
@@ -156,21 +141,6 @@ static u64 pcidebug_readbar(int id, u64 offset, size_t bitwidth){
 static u64 pcidebug_writebar(int id, u64 offset, u64 val, size_t bitwidth){
     u64 result = 0;
     u32 low = 0;
-    if(id<0 || id>BARS_MAXNUM){
-        Kprintf("[KERN_WARNING] %s: BAR id invalid!\n",DEVICE_NAME);
-        printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
-        return 0;
-    }
-    if(!pcidebug.baruseds[id]){
-        Kprintf("[KERN_WARNING] %s: BAR %d don't used!\n",DEVICE_NAME, id);
-        printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, id);
-        return 0;
-    }
-    if(offset < 0 || offset > pcidebug.baseLens[id]){
-        Kprintf("[KERN_WARNING] %s: Offset out of range!\n",DEVICE_NAME);
-        printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
-        return 0;
-    }
     //printk(KERN_INFO"%s: pcidebug_writebar val=0x%016llx\n",DEVICE_NAME, val);
     switch(bitwidth){
         case 8:
@@ -221,19 +191,33 @@ long pcidebug_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     int rc = ERROR;
     rwbar_t cmdarg;
 
-    //printk(KERN_INFO"%s: Enter pcidebug_ioctl\n",DEVICE_NAME);
-
+    Kprintf("[KERN_INFO] %s: Enter pcidebug_ioctl.\n",DEVICE_NAME);
+    printk(KERN_INFO"%s: Enter pcidebug_ioctl.\n",DEVICE_NAME);
+    
     if(copy_from_user(&cmdarg,(rwbar_t*)arg,sizeof(rwbar_t))){
         Kprintf("[KERN_ALERT] %s: can't access cmd arg\n",DEVICE_NAME);
         printk(KERN_ALERT"%s: can't access cmd arg\n",DEVICE_NAME);
         return rc;
     }
-    Kprintf("[KERN_INFO] %s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
-    Kprintf("[KERN_INFO] %s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
-    Kprintf("[KERN_INFO] %s: pcidebug_ioctl bitwidth=%d\n",DEVICE_NAME,cmdarg.bitwidth);
-    printk(KERN_INFO"%s: pcidebug_ioctl barid=%d\n",DEVICE_NAME,cmdarg.barid);
-    printk(KERN_INFO"%s: pcidebug_ioctl offset=0x%llx\n",DEVICE_NAME,cmdarg.offset);
-    printk(KERN_INFO"%s: pcidebug_ioctl bitwidth=%d\n",DEVICE_NAME,cmdarg.bitwidth);
+    // check args
+    if(cmdarg.barid<0 || cmdarg.barid>BARS_MAXNUM){
+        Kprintf("[KERN_WARNING] %s: BAR id invalid!\n",DEVICE_NAME);
+        printk(KERN_WARNING "%s: BAR id invalid!\n",DEVICE_NAME);
+        return rc;
+    }
+    if(!pcidebug.baruseds[cmdarg.barid]){
+        Kprintf("[KERN_WARNING] %s: BAR %d don't used!\n",DEVICE_NAME, cmdarg.barid);
+        printk(KERN_WARNING "%s: BAR %d don't used!\n",DEVICE_NAME, cmdarg.barid);
+        return rc;
+    }
+    if(cmdarg.offset < 0 || cmdarg.offset > pcidebug.baseLens[cmdarg.barid]){
+        Kprintf("[KERN_WARNING] %s: Offset out of range!\n",DEVICE_NAME);
+        printk(KERN_WARNING "%s: Offset out of range!\n",DEVICE_NAME);
+        return rc;
+    }
+    
+    Kprintf("[KERN_INFO] %s: barid=%d, offset=0x%llx, bitwidth=%d\n",DEVICE_NAME, cmdarg.barid, cmdarg.offset, cmdarg.bitwidth);
+    printk(KERN_INFO"%s: barid=%d, offset=0x%llx, bitwidth=%d\n",DEVICE_NAME, cmdarg.barid, cmdarg.offset, cmdarg.bitwidth);
 
     switch(cmd){
         case IOCTL_RDBAR:

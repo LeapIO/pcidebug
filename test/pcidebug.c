@@ -19,6 +19,36 @@ void pcidebug_close(int fd){
     printf("Close %s\n",DEVICE_NAME);
 }
 
+void pcidebug_showbar(int fd, int id, uint64_t offset, uint64_t len){
+    rwbar_t data;
+    int i = 0;
+    uint64_t valid_len = 0;
+    uint8_t buf[SHOW_MAX];
+    data.barid = id;
+    data.value = 0;
+    data.bitwidth = 8;
+    if(len>SHOW_MAX){
+        printf("The length is too long, it must less than 256 bytes!\n");
+        return;
+    }
+    for(i = 0; i<len; i++){
+        data.offset = offset + i;
+        if(SUCCESS==ioctl(fd, IOCTL_RDBAR, &data)){
+            valid_len++;
+        }
+        buf[i] = (uint8_t)data.value;
+    }
+    // show 
+    printf("------------ BAR%d ------------", id);
+    for(i = 0; i<valid_len; i++){
+        if(i%8==0){
+            printf("\n0x%016lx:", i+offset);
+        }
+        printf(" %02x",buf[i]);
+    }
+    printf("\n-------------------------------\n");
+}
+
 uint8_t pcidebug_rdbar8(int fd, int id, uint64_t offset){
     rwbar_t data;
     data.barid = id;
