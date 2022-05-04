@@ -29,6 +29,7 @@ struct pcidebug_state{
     struct pci_dev *dev;
     bool used;
     bool baruseds[BARS_MAXNUM];            // BAR is or not used
+    bool haveRegion[BARS_MAXNUM];          
     unsigned long baseHards[BARS_MAXNUM];  // BARs Hardware address
     unsigned long baseLens[BARS_MAXNUM];   // BARs Length
     void *baseVirts[BARS_MAXNUM];          // BRAs Virtual address
@@ -288,6 +289,7 @@ static int pcidebug_get_bar(int bar_id)
         printk(KERN_WARNING"%s: pcidebug_get_bar: Mem/IO in use.\n",DEVICE_NAME);
         return (ERROR);
     }
+    pcidebug.haveRegion[bar_id] = true;
     Kprintf("[KERN_INFO] %s: pcidebug_get_bar done.\n",DEVICE_NAME);
     printk(KERN_INFO "%s: pcidebug_get_bar done.\n",DEVICE_NAME);
     return (SUCCESS);
@@ -328,6 +330,7 @@ static int __init pcidebug_init(void)
     pcidebug.used = false;
     for(i=0; i<BARS_MAXNUM; i++){
         pcidebug.baruseds[i] = false;
+        pcidebug.haveRegion[i] = false;
         pcidebug.baseHards[i] = 0;
         pcidebug.baseLens[i] = 0;
         pcidebug.baseVirts[i] = NULL;
@@ -404,8 +407,12 @@ static void __exit pcidebug_exit(void)
     for(id = 0; id<BARS_MAXNUM; id++){
         if(pcidebug.used){
             //release region
-            pci_release_region(pcidebug.dev,id);
-
+            if(pcidebug.haveRegion[id]){
+                pci_release_region(pcidebug.dev,id);
+                Kprintf("[KERN_INFO] %s: release bar %d\n",DEVICE_NAME,id);
+                printk(KERN_INFO "%s: release bar %d\n",DEVICE_NAME,id);
+            }
+        
             // unmap virtual device address
             if(pcidebug.baseVirts[id] != NULL){
                 pci_iounmap(pcidebug.dev, pcidebug.baseVirts[id]);
