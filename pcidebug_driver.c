@@ -283,7 +283,7 @@ static int pcidebug_get_bar(int bar_id)
     printk(KERN_INFO "%s: pcidebug_get_bar: BAR %d virt addr 0x%016lx.\n",DEVICE_NAME, bar_id, (size_t)pcidebug.baseVirts[bar_id]);
 
     // request region
-    if(!pci_request_region(pcidebug.dev, bar_id, "pcidebug_Driver")){
+    if(pci_request_region(pcidebug.dev, bar_id, "pcidebug_Driver")!=0){
         Kprintf("[KERN_WARNING] %s: pcidebug_get_bar: Mem/IO in use.\n",DEVICE_NAME);
         printk(KERN_WARNING"%s: pcidebug_get_bar: Mem/IO in use.\n",DEVICE_NAME);
         return (ERROR);
